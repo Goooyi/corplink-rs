@@ -87,7 +87,7 @@ pub fn start_wg_go(name: &str, protocol: i32, with_log: bool) -> Result<()> {
     Ok(())
 }
 
-// start wg-corplink in userspace netstack mode and expose a SOCKS5 proxy.
+// start wg-corplink in userspace netstack mode and expose a mixed HTTP/SOCKS5 proxy.
 // no kernel TUN device, no system routes/dns and no root are needed.
 pub fn start_wg_go_netstack(
     conf: &config::WgConf,
@@ -96,7 +96,7 @@ pub fn start_wg_go_netstack(
     socks_pass: &str,
     with_log: bool,
 ) -> Result<()> {
-    log::info!("start wg-corplink in netstack/socks5 mode");
+    log::info!("start wg-corplink in netstack/proxy mode");
     let log_level = if with_log {
         libwg::LogLevelVerbose
     } else {

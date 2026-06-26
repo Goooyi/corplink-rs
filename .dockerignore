@@ -1,0 +1,12 @@
+.git
+.gitignore
+.vscode
+target
+**/target
+libwg/libwg.a
+libwg/libwg.h
+config
+run-*.json
+*_cookies.json
+*.log
+.DS_Store

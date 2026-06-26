@@ -87,7 +87,7 @@ async fn run() -> Result<()> {
     let socks5_password = conf.socks5_password.clone().unwrap_or_default();
     let netstack_mode = socks5_listen.is_some();
 
-    // netstack/socks5 mode runs entirely in userspace (no kernel TUN device,
+    // netstack proxy mode runs entirely in userspace (no kernel TUN device,
     // no system routes/dns), so it does not require elevated privileges.
     if !netstack_mode {
         check_privilege();
@@ -153,17 +153,17 @@ async fn run() -> Result<()> {
     let protocol = wg_conf.protocol;
     let mut uapi = wg::UAPIClient { name: name.clone() };
     if let Some(listen) = &socks5_listen {
-        log::info!("start wg-corplink (netstack/socks5) on {}", listen);
+        log::info!("start wg-corplink (netstack/proxy) on {}", listen);
         wg::start_wg_go_netstack(&wg_conf, listen, &socks5_username, &socks5_password, with_wg_log)
             .context("failed to start wg-corplink in netstack mode")?;
         uapi.config_wg_netstack(&wg_conf)
             .await
             .context("failed to config netstack interface with uapi")?;
         if socks5_username.is_empty() {
-            log::info!("socks5 proxy ready at {} (no auth)", listen);
+            log::info!("mixed HTTP/SOCKS5 proxy ready at {} (no auth)", listen);
         } else {
             log::info!(
-                "socks5 proxy ready at {} (username/password auth required)",
+                "mixed HTTP/SOCKS5 proxy ready at {} (username/password auth required)",
                 listen
             );
         }
