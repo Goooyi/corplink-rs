@@ -18,8 +18,28 @@ port that accepts both SOCKS5 and HTTP proxy traffic.
 
 Current fork commits:
 
-- `corplink-rs`: `e428d70 Add minimal mixed-proxy container`
+- `corplink-rs`: patched container variant, local image tag `corplink-rs:patched`
 - `wireguard-go`: `0f2c9ae Add mixed HTTP and SOCKS5 proxy`
+
+## Upstream And Credits
+
+This fork is built on top of work from several projects:
+
+- [PinkD/corplink-rs](https://github.com/PinkD/corplink-rs): upstream Rust
+  Corplink client.
+- [PinkD/wireguard-go](https://github.com/PinkD/wireguard-go): modified
+  `wireguard-go` library used by upstream `corplink-rs`.
+- [WireGuard/wireguard-go](https://git.zx2c4.com/wireguard-go/): original
+  userspace WireGuard implementation.
+- [gVisor netstack](https://gvisor.dev/docs/user_guide/networking/): userspace
+  TCP/IP stack used for proxy-only VPN access without a kernel TUN interface.
+- [GoogleContainerTools/distroless](https://github.com/GoogleContainerTools/distroless):
+  minimal Debian-based runtime image used by the container.
+- [riba2534/corplink-web](https://hub.docker.com/r/riba2534/corplink-web):
+  inspiration for the zero-privilege container workflow and single mixed proxy
+  port. This fork does not include its web UI.
+
+This repository keeps the upstream license file. See [license.txt](license.txt).
 
 ## Runtime Model
 
@@ -195,6 +215,52 @@ docker buildx build \
 You do not need Docker Hub for local use. Docker Hub is only needed if you want
 to pull this image from another machine or share it.
 
+## Push To Docker Hub
+
+First create a Docker Hub repository, for example:
+
+```text
+YOUR_DOCKERHUB_USER/corplink-rs
+```
+
+Log in locally:
+
+```bash
+docker login
+```
+
+For a quick single-architecture push from the image already built on this
+machine:
+
+```bash
+docker tag corplink-rs:patched YOUR_DOCKERHUB_USER/corplink-rs:patched
+docker push YOUR_DOCKERHUB_USER/corplink-rs:patched
+```
+
+For a proper multi-architecture image, build and push directly with Buildx:
+
+```bash
+docker buildx build \
+  --platform linux/arm64,linux/amd64 \
+  -t YOUR_DOCKERHUB_USER/corplink-rs:patched \
+  --push \
+  .
+```
+
+On another machine:
+
+```bash
+docker pull YOUR_DOCKERHUB_USER/corplink-rs:patched
+docker run -d --name corplink-rs \
+  --read-only \
+  -p 1089:1080 \
+  -v "$PWD/config-data:/data" \
+  YOUR_DOCKERHUB_USER/corplink-rs:patched
+```
+
+Do not bake `config.json`, cookies, or other secrets into the image. Mount a
+writable `/data` directory at runtime instead.
+
 ## Native Binary Mode
 
 The non-container binary can still be built and run directly. Without
@@ -215,6 +281,21 @@ Run:
 ```bash
 RUST_LOG=info ./target/release/corplink-rs config.json
 ```
+
+## TODO
+
+- Measure memory after comparing against an actively connected `corplink-web`
+  session, not only an idle web UI listener.
+- Investigate feature-gating or stripping unused QR/image/terminal dependencies
+  for the container build.
+- Consider a tiny optional web UI only for login flows that benefit from browser
+  interaction, such as QR, SSO, or manual verification.
+- Consider a `no-ui` or `proxy-only` build profile that removes QR/login display
+  helpers when config-file login is enough.
+- Evaluate switching Rust HTTP TLS from native OpenSSL to Rustls to simplify
+  runtime dependencies.
+- Keep the current TCP buffer tuning unless profiling shows it is wasteful;
+  reducing buffers may hurt throughput on this Corplink TCP path.
 
 ## Troubleshooting
 
