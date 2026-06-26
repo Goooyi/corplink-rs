@@ -1,4 +1,4 @@
 [submodule "libwg/wireguard-go"]
 	path = libwg/wireguard-go
-	url = https://github.com/PinkD/wireguard-go
+	url = git@github.com:Goooyi/wireguard-go.git
 	branch = libwg
